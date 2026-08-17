@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1f5f66">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Bolus repas</title>
+<style>
+  :root{
+    --bg:#eef2f3;
+    --card:#ffffff;
+    --ink:#12262a;
+    --ink-soft:#5b6b6e;
+    --teal:#1f5f66;
+    --teal-dark:#143f44;
+    --amber:#c9862c;
+    --alert:#b23a2e;
+    --line:#dde4e5;
+    --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--bg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    padding-bottom:40px;
+  }
+  header{
+    background:var(--teal);
+    color:#fff;
+    padding:22px 20px 26px;
+    border-radius:0 0 24px 24px;
+  }
+  header h1{
+    margin:0;
+    font-size:1.3rem;
+    letter-spacing:0.02em;
+    font-weight:700;
+  }
+  header p{
+    margin:6px 0 0;
+    font-size:0.85rem;
+    color:#cfe6e8;
+  }
+  main{
+    max-width:480px;
+    margin:0 auto;
+    padding:18px 16px 0;
+  }
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:18px;
+    margin-bottom:16px;
+    box-shadow:0 1px 3px rgba(18,38,42,0.08);
+  }
+  .card h2{
+    font-size:0.75rem;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--ink-soft);
+    margin:0 0 12px;
+    font-weight:700;
+  }
+  .meals{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .meal-btn{
+    border:2px solid var(--line);
+    background:#fff;
+    border-radius:12px;
+    padding:14px 8px;
+    font-size:0.95rem;
+    font-weight:600;
+    color:var(--ink);
+    cursor:pointer;
+    transition:border-color .15s, background .15s;
+    text-align:center;
+  }
+  .meal-btn small{
+    display:block;
+    font-weight:400;
+    color:var(--ink-soft);
+    font-size:0.72rem;
+    margin-top:3px;
+  }
+  .meal-btn.active{
+    border-color:var(--teal);
+    background:#e7f1f1;
+    color:var(--teal-dark);
+  }
+  label{
+    display:block;
+    font-size:0.85rem;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin-bottom:8px;
+  }
+  .input-row{
+    display:flex;
+    align-items:center;
+    border:2px solid var(--line);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  .input-row input{
+    flex:1;
+    border:0;
+    padding:14px;
+    font-size:1.4rem;
+    font-weight:700;
+    color:var(--ink);
+    background:transparent;
+    -moz-appearance:textfield;
+  }
+  .input-row input:focus{outline:none;}
+  .input-row input::-webkit-outer-spin-button,
+  .input-row input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .unit{
+    padding:0 16px;
+    color:var(--ink-soft);
+    font-weight:600;
+    font-size:0.95rem;
+  }
+  select#sensibilite{
+    width:100%;
+    border:2px solid var(--line);
+    border-radius:12px;
+    padding:14px;
+    font-size:1.1rem;
+    font-weight:700;
+    color:var(--ink);
+    background:#fff;
+    appearance:none;
+    -webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%235b6b6e'><path d='M7 10l5 5 5-5z'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 14px center;
+    background-size:20px;
+  }
+  .calc-btn{
+    width:100%;
+    padding:16px;
+    border:0;
+    border-radius:14px;
+    background:var(--teal);
+    color:#fff;
+    font-size:1.05rem;
+    font-weight:700;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .calc-btn:active{background:var(--teal-dark);}
+  .result{
+    display:none;
+  }
+  .result.show{display:block;}
+  .dose-total{
+    text-align:center;
+    padding:6px 0 4px;
+  }
+  .dose-total .num{
+    font-size:3.2rem;
+    font-weight:800;
+    color:var(--teal-dark);
+    line-height:1;
+  }
+  .dose-total .label{
+    font-size:0.8rem;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    margin-top:4px;
+  }
+  .breakdown{
+    margin-top:14px;
+    border-top:1px solid var(--line);
+    padding-top:12px;
+  }
+  .breakdown-row{
+    display:flex;
+    justify-content:space-between;
+    padding:6px 0;
+    font-size:0.92rem;
+  }
+  .breakdown-row .v{font-weight:700;}
+  .alert{
+    display:none;
+    padding:10px 2px 0;
+    font-size:0.85rem;
+    color:var(--ink-soft);
+    line-height:1.4;
+  }
+  .alert.show{display:block;}
+  .note{
+    font-size:0.78rem;
+    color:var(--ink-soft);
+    line-height:1.5;
+    margin-top:18px;
+    padding:0 4px;
+  }
+  .ref-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:0.85rem;
+    margin-top:4px;
+  }
+  .ref-table td{
+    padding:8px 4px;
+    border-bottom:1px solid var(--line);
+  }
+  .ref-table td:last-child{text-align:right;font-weight:700;}
+  .ref-table tr.zero td{color:var(--ink-soft);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Bolus repas</h1>
+</header>
+
+<main>
+
+  <div class="card">
+    <h2>1 — Repas</h2>
+    <div class="meals" id="meals">
+      <button class="meal-btn" data-meal="petit_dej" data-ratio="2">Petit-déj<small>Ratio : 2</small></button>
+      <button class="meal-btn" data-meal="dejeuner" data-ratio="1">Déjeuner<small>Ratio : 1</small></button>
+      <button class="meal-btn" data-meal="gouter" data-ratio="1">Goûter<small>Ratio : 1</small></button>
+      <button class="meal-btn" data-meal="diner" data-ratio="1">Dîner<small>Ratio : 1</small></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2 — Glucides du repas</h2>
+    <label for="glucides">Quantité de glucides</label>
+    <div class="input-row">
+      <input type="number" id="glucides" inputmode="numeric" placeholder="0" min="0" step="1">
+      <span class="unit">g</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3 — Sensibilité (ISF)</h2>
+    <label for="sensibilite">Facteur de sensibilité</label>
+    <select id="sensibilite">
+      <option value="20">20</option>
+      <option value="25">25</option>
+      <option value="30" selected>30</option>
+      <option value="35">35</option>
+      <option value="40">40</option>
+      <option value="45">45</option>
+      <option value="50">50</option>
+      <option value="60">60</option>
+      <option value="70">70</option>
+      <option value="80">80</option>
+      <option value="90">90</option>
+      <option value="100">100</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <h2>4 — Glycémie actuelle</h2>
+    <label for="glycemie">Glycémie mesurée</label>
+    <div class="input-row">
+      <input type="number" id="glycemie" inputmode="numeric" placeholder="0" min="0" step="1">
+      <span class="unit">mg/dL</span>
+    </div>
+  </div>
+
+  <button class="calc-btn" id="calcBtn">Calculer la dose</button>
+
+  <div class="card result" id="resultCard">
+    <div class="dose-total">
+      <div class="num" id="doseTotal">0</div>
+      <div class="label">unités d'insuline</div>
+    </div>
+    <div class="breakdown">
+      <div class="breakdown-row"><span>Dose repas</span><span class="v" id="doseRepas">0</span></div>
+      <div class="breakdown-row"><span>Correctif glycémie</span><span class="v" id="doseCorrectif">0</span></div>
+    </div>
+    <div class="alert hypo" id="alertHypo">
+      Sous 70 mg/dL : hors table, pas de valeur calculée.
+    </div>
+    <div class="alert high" id="alertHigh">
+      Au-dessus de 400 mg/dL : hors table, pas de valeur calculée.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="refTableTitle">Table de correctif utilisée (sensibilité 30)</h2>
+    <table class="ref-table">
+      <tr class="zero"><td>70 – 150 mg/dL</td><td>pas de correctif</td></tr>
+      <tr><td>150 – 200 mg/dL</td><td>+1,5 u</td></tr>
+      <tr><td>200 – 250 mg/dL</td><td>+3 u</td></tr>
+      <tr><td>250 – 300 mg/dL</td><td>+4,5 u</td></tr>
+      <tr><td>300 – 350 mg/dL</td><td>+6 u</td></tr>
+      <tr><td>350 – 400 mg/dL</td><td>+7,5 u</td></tr>
+    </table>
+  </div>
+
+
+</main>
+
+<script>
+  const meals = document.querySelectorAll('.meal-btn');
+  let selectedRatio = null;
+
+  meals.forEach(btn => {
+    btn.addEventListener('click', () => {
+      meals.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedRatio = parseFloat(btn.dataset.ratio);
+    });
+  });
+  // Default: petit-déj not preselected on purpose — force explicit choice
+  meals[1].classList.add('active');
+  selectedRatio = parseFloat(meals[1].dataset.ratio); // Déjeuner as safe default (ratio 1)
+
+  // Tables de correctif par sensibilité, valeurs exactes du fichier Excel
+  // ordre des paliers : [150-200, 200-250, 250-300, 300-350, 350-400]
+  const correctifTables = {
+    20:  [2.5, 5,   7.5, 9,   11.5],
+    25:  [2,   4,   6,   8,   10],
+    30:  [1.5, 3,   4.5, 6,   7.5],
+    35:  [1.5, 3,   4.5, 6,   7.5],
+    40:  [1,   2.5, 4,   5,   6],
+    45:  [1,   2,   3,   4.5, 5.5],
+    50:  [1,   2,   3,   4,   5],
+    60:  [1,   1.5, 2.5, 3,   4],
+    70:  [1,   1.5, 2,   3,   3.5],
+    80:  [0.5, 1,   2,   2.5, 3],
+    90:  [0.5, 1,   1.5, 2,   2.5],
+    100: [0.5, 1,   1.5, 2,   2.5]
+  };
+
+  function correctif(glyc, sensibilite){
+    const table = correctifTables[sensibilite];
+    if(glyc < 70) return {value:null, zone:'hypo'};
+    if(glyc < 150) return {value:0, zone:'ok'};
+    if(glyc < 200) return {value:table[0], zone:'ok'};
+    if(glyc < 250) return {value:table[1], zone:'ok'};
+    if(glyc < 300) return {value:table[2], zone:'ok'};
+    if(glyc < 350) return {value:table[3], zone:'ok'};
+    if(glyc < 400) return {value:table[4], zone:'ok'};
+    return {value:null, zone:'high'};
+  }
+
+  function renderRefTable(sensibilite){
+    const table = correctifTables[sensibilite];
+    const rows = document.querySelectorAll('.ref-table tr:not(.zero)');
+    rows.forEach((row, i) => {
+      row.querySelector('td:last-child').textContent = '+' + table[i].toString().replace('.',',') + ' u';
+    });
+    document.getElementById('refTableTitle').textContent = 'Table de correctif utilisée (sensibilité ' + sensibilite + ')';
+  }
+
+  document.getElementById('sensibilite').addEventListener('change', (e) => {
+    renderRefTable(e.target.value);
+  });
+  renderRefTable('30');
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  document.getElementById('calcBtn').addEventListener('click', () => {
+    const glucides = parseFloat(document.getElementById('glucides').value) || 0;
+    const glycemie = parseFloat(document.getElementById('glycemie').value);
+
+    const resultCard = document.getElementById('resultCard');
+    const alertHypo = document.getElementById('alertHypo');
+    const alertHigh = document.getElementById('alertHigh');
+    alertHypo.classList.remove('show');
+    alertHigh.classList.remove('show');
+
+    if(isNaN(glycemie)){
+      document.getElementById('glycemie').focus();
+      return;
+    }
+
+    // Reproduit QUOTIENT(glucides,10) de la formule Excel : arrondi à la dizaine inférieure
+    const parts = Math.floor(glucides / 10);
+    const doseRepas = parts * selectedRatio;
+
+    const sensibilite = document.getElementById('sensibilite').value;
+    const corr = correctif(glycemie, sensibilite);
+
+    resultCard.classList.add('show');
+
+    if(corr.zone === 'hypo'){
+      alertHypo.classList.add('show');
+      document.getElementById('doseTotal').textContent = '—';
+      document.getElementById('doseRepas').textContent = doseRepas;
+      document.getElementById('doseCorrectif').textContent = '—';
+      return;
+    }
+    if(corr.zone === 'high'){
+      alertHigh.classList.add('show');
+      document.getElementById('doseTotal').textContent = '—';
+      document.getElementById('doseRepas').textContent = doseRepas;
+      document.getElementById('doseCorrectif').textContent = '—';
+      return;
+    }
+
+    const total = doseRepas + corr.value;
+    document.getElementById('doseTotal').textContent = total.toString().replace('.',',');
+    document.getElementById('doseRepas').textContent = doseRepas.toString().replace('.',',') + ' u';
+    document.getElementById('doseCorrectif').textContent = (corr.value>0?'+':'') + corr.value.toString().replace('.',',') + ' u';
+  });
+</script>
+
+</body>
+</html>
