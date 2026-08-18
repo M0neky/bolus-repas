@@ -87,7 +87,9 @@
   }
   .ratio-block{
     margin-top:14px;
+    display:none;
   }
+  .ratio-block.show{display:block;}
   .input-row{
     display:flex;
     align-items:center;
@@ -209,12 +211,12 @@
   <div class="card">
     <h2>1 — Repas</h2>
     <div class="meals" id="meals">
-      <button class="meal-btn" data-meal="petit_dej">Petit-déj</button>
+      <button class="meal-btn" data-meal="petit_dej">Petit-déjeuner</button>
       <button class="meal-btn" data-meal="dejeuner">Déjeuner</button>
       <button class="meal-btn" data-meal="gouter">Goûter</button>
       <button class="meal-btn" data-meal="diner">Dîner</button>
     </div>
-    <div class="ratio-block">
+    <div class="ratio-block" id="ratioBlock">
       <select id="ratioSelect" class="select-field"></select>
     </div>
   </div>
@@ -297,7 +299,8 @@
 
   const meals = document.querySelectorAll('.meal-btn');
   const ratioSelect = document.getElementById('ratioSelect');
-  let selectedRatio = defaultRatios.dejeuner;
+  const ratioBlock = document.getElementById('ratioBlock');
+  let selectedRatio = null;
 
   // Génère les options du ratio : 0.5 à 4.0, pas de 0.1
   for (let i = 5; i <= 40; i++) {
@@ -319,6 +322,7 @@
     btn.addEventListener('click', () => {
       meals.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      ratioBlock.classList.add('show');
       const meal = btn.dataset.meal;
       const saved = localStorage.getItem(ratioKey(meal));
       setRatio(saved !== null ? saved : defaultRatios[meal]);
@@ -332,11 +336,6 @@
       localStorage.setItem(ratioKey(activeMeal.dataset.meal), selectedRatio.toFixed(1));
     }
   });
-
-  // Déjeuner sélectionné par défaut à l'ouverture, avec la dernière valeur mémorisée s'il y en a une
-  meals[1].classList.add('active');
-  const savedDejeuner = localStorage.getItem(ratioKey('dejeuner'));
-  setRatio(savedDejeuner !== null ? savedDejeuner : defaultRatios.dejeuner);
 
   // --- Tables de correctif par sensibilité (valeurs exactes du fichier Excel) ---
   // ordre des paliers : [150-200, 200-250, 250-300, 300-350, 350-400]
@@ -399,6 +398,11 @@
     const alertHigh = document.getElementById('alertHigh');
     alertHypo.classList.remove('show');
     alertHigh.classList.remove('show');
+
+    if(selectedRatio === null){
+      document.querySelector('.meals').scrollIntoView({behavior:'smooth'});
+      return;
+    }
 
     if(isNaN(glycemie)){
       document.getElementById('glycemie').focus();
