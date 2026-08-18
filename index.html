@@ -19,8 +19,6 @@
     --ink-soft:#5b6b6e;
     --teal:#1f5f66;
     --teal-dark:#143f44;
-    --amber:#c9862c;
-    --alert:#b23a2e;
     --line:#dde4e5;
     --radius:16px;
   }
@@ -44,11 +42,6 @@
     font-size:1.3rem;
     letter-spacing:0.02em;
     font-weight:700;
-  }
-  header p{
-    margin:6px 0 0;
-    font-size:0.85rem;
-    color:#cfe6e8;
   }
   main{
     max-width:480px;
@@ -87,24 +80,13 @@
     transition:border-color .15s, background .15s;
     text-align:center;
   }
-  .meal-btn small{
-    display:block;
-    font-weight:400;
-    color:var(--ink-soft);
-    font-size:0.72rem;
-    margin-top:3px;
-  }
   .meal-btn.active{
     border-color:var(--teal);
     background:#e7f1f1;
     color:var(--teal-dark);
   }
-  label{
-    display:block;
-    font-size:0.85rem;
-    font-weight:600;
-    color:var(--ink-soft);
-    margin-bottom:8px;
+  .ratio-block{
+    margin-top:14px;
   }
   .input-row{
     display:flex;
@@ -132,7 +114,7 @@
     font-weight:600;
     font-size:0.95rem;
   }
-  select#sensibilite{
+  .select-field{
     width:100%;
     border:2px solid var(--line);
     border-radius:12px;
@@ -202,13 +184,6 @@
     line-height:1.4;
   }
   .alert.show{display:block;}
-  .note{
-    font-size:0.78rem;
-    color:var(--ink-soft);
-    line-height:1.5;
-    margin-top:18px;
-    padding:0 4px;
-  }
   .ref-table{
     width:100%;
     border-collapse:collapse;
@@ -234,16 +209,18 @@
   <div class="card">
     <h2>1 — Repas</h2>
     <div class="meals" id="meals">
-      <button class="meal-btn" data-meal="petit_dej" data-ratio="2">Petit-déj<small>Ratio : 2</small></button>
-      <button class="meal-btn" data-meal="dejeuner" data-ratio="1">Déjeuner<small>Ratio : 1</small></button>
-      <button class="meal-btn" data-meal="gouter" data-ratio="1">Goûter<small>Ratio : 1</small></button>
-      <button class="meal-btn" data-meal="diner" data-ratio="1">Dîner<small>Ratio : 1</small></button>
+      <button class="meal-btn" data-meal="petit_dej">Petit-déj</button>
+      <button class="meal-btn" data-meal="dejeuner">Déjeuner</button>
+      <button class="meal-btn" data-meal="gouter">Goûter</button>
+      <button class="meal-btn" data-meal="diner">Dîner</button>
+    </div>
+    <div class="ratio-block">
+      <select id="ratioSelect" class="select-field"></select>
     </div>
   </div>
 
   <div class="card">
     <h2>2 — Glucides du repas</h2>
-    <label for="glucides">Quantité de glucides</label>
     <div class="input-row">
       <input type="number" id="glucides" inputmode="numeric" placeholder="0" min="0" step="1">
       <span class="unit">g</span>
@@ -251,9 +228,8 @@
   </div>
 
   <div class="card">
-    <h2>3 — Sensibilité (ISF)</h2>
-    <label for="sensibilite">Facteur de sensibilité</label>
-    <select id="sensibilite">
+    <h2>3 — Facteur de correction</h2>
+    <select id="sensibilite" class="select-field">
       <option value="20">20</option>
       <option value="25">25</option>
       <option value="30" selected>30</option>
@@ -271,7 +247,6 @@
 
   <div class="card">
     <h2>4 — Glycémie actuelle</h2>
-    <label for="glycemie">Glycémie mesurée</label>
     <div class="input-row">
       <input type="number" id="glycemie" inputmode="numeric" placeholder="0" min="0" step="1">
       <span class="unit">mg/dL</span>
@@ -298,7 +273,7 @@
   </div>
 
   <div class="card">
-    <h2 id="refTableTitle">Table de correctif utilisée (sensibilité 30)</h2>
+    <h2>Table de correctif utilisée</h2>
     <table class="ref-table">
       <tr class="zero"><td>70 – 150 mg/dL</td><td>pas de correctif</td></tr>
       <tr><td>150 – 200 mg/dL</td><td>+1,5 u</td></tr>
@@ -309,25 +284,52 @@
     </table>
   </div>
 
-
 </main>
 
 <script>
+  // --- Ratios par défaut par repas (valeurs du fichier Excel) ---
+  const defaultRatios = {
+    petit_dej: 2.0,
+    dejeuner: 1.0,
+    gouter: 1.0,
+    diner: 1.0
+  };
+
   const meals = document.querySelectorAll('.meal-btn');
-  let selectedRatio = null;
+  const ratioSelect = document.getElementById('ratioSelect');
+  let selectedRatio = defaultRatios.dejeuner;
+
+  // Génère les options du ratio : 0.5 à 4.0, pas de 0.1
+  for (let i = 5; i <= 40; i++) {
+    const val = (i / 10).toFixed(1);
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = val.replace('.', ',');
+    ratioSelect.appendChild(opt);
+  }
+
+  function setRatio(value){
+    selectedRatio = parseFloat(value);
+    ratioSelect.value = selectedRatio.toFixed(1);
+  }
 
   meals.forEach(btn => {
     btn.addEventListener('click', () => {
       meals.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      selectedRatio = parseFloat(btn.dataset.ratio);
+      setRatio(defaultRatios[btn.dataset.meal]);
     });
   });
-  // Default: petit-déj not preselected on purpose — force explicit choice
-  meals[1].classList.add('active');
-  selectedRatio = parseFloat(meals[1].dataset.ratio); // Déjeuner as safe default (ratio 1)
 
-  // Tables de correctif par sensibilité, valeurs exactes du fichier Excel
+  ratioSelect.addEventListener('change', (e) => {
+    selectedRatio = parseFloat(e.target.value);
+  });
+
+  // Déjeuner sélectionné par défaut à l'ouverture
+  meals[1].classList.add('active');
+  setRatio(defaultRatios.dejeuner);
+
+  // --- Tables de correctif par sensibilité (valeurs exactes du fichier Excel) ---
   // ordre des paliers : [150-200, 200-250, 250-300, 300-350, 350-400]
   const correctifTables = {
     20:  [2.5, 5,   7.5, 9,   11.5],
@@ -362,7 +364,6 @@
     rows.forEach((row, i) => {
       row.querySelector('td:last-child').textContent = '+' + table[i].toString().replace('.',',') + ' u';
     });
-    document.getElementById('refTableTitle').textContent = 'Table de correctif utilisée (sensibilité ' + sensibilite + ')';
   }
 
   document.getElementById('sensibilite').addEventListener('change', (e) => {
