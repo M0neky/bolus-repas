@@ -313,21 +313,30 @@
     ratioSelect.value = selectedRatio.toFixed(1);
   }
 
+  function ratioKey(meal){ return 'ratio_' + meal; }
+
   meals.forEach(btn => {
     btn.addEventListener('click', () => {
       meals.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      setRatio(defaultRatios[btn.dataset.meal]);
+      const meal = btn.dataset.meal;
+      const saved = localStorage.getItem(ratioKey(meal));
+      setRatio(saved !== null ? saved : defaultRatios[meal]);
     });
   });
 
   ratioSelect.addEventListener('change', (e) => {
     selectedRatio = parseFloat(e.target.value);
+    const activeMeal = document.querySelector('.meal-btn.active');
+    if(activeMeal){
+      localStorage.setItem(ratioKey(activeMeal.dataset.meal), selectedRatio.toFixed(1));
+    }
   });
 
-  // Déjeuner sélectionné par défaut à l'ouverture
+  // Déjeuner sélectionné par défaut à l'ouverture, avec la dernière valeur mémorisée s'il y en a une
   meals[1].classList.add('active');
-  setRatio(defaultRatios.dejeuner);
+  const savedDejeuner = localStorage.getItem(ratioKey('dejeuner'));
+  setRatio(savedDejeuner !== null ? savedDejeuner : defaultRatios.dejeuner);
 
   // --- Tables de correctif par sensibilité (valeurs exactes du fichier Excel) ---
   // ordre des paliers : [150-200, 200-250, 250-300, 300-350, 350-400]
@@ -368,8 +377,14 @@
 
   document.getElementById('sensibilite').addEventListener('change', (e) => {
     renderRefTable(e.target.value);
+    localStorage.setItem('facteur_correction', e.target.value);
   });
-  renderRefTable('30');
+
+  const savedSensibilite = localStorage.getItem('facteur_correction');
+  if(savedSensibilite !== null){
+    document.getElementById('sensibilite').value = savedSensibilite;
+  }
+  renderRefTable(document.getElementById('sensibilite').value);
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
