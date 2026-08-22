@@ -1,3 +1,7 @@
+<!--
+  Bolus repas
+  Créé par Vincent BOURDIN
+-->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -12,6 +16,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Bolus repas</title>
 <style>
+
+  /* ========== Variables et base ========== */
+
   :root{
     --bg:#eef2f3;
     --card:#ffffff;
@@ -63,6 +70,8 @@
     margin:0 0 12px;
     font-weight:700;
   }
+  /* ========== Repas et ratio ========== */
+
   .meals{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -85,11 +94,35 @@
     background:#e7f1f1;
     color:var(--teal-dark);
   }
-  .ratio-block{
-    margin-top:14px;
+  .ratio-card{
     display:none;
+    border:2px solid var(--teal);
   }
-  .ratio-block.show{display:block;}
+  .ratio-card.show{display:block;}
+  .mode-tabs{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .mode-btn{
+    border:2px solid var(--line);
+    background:#fff;
+    border-radius:12px;
+    padding:14px 8px;
+    font-size:0.9rem;
+    font-weight:700;
+    color:var(--ink-soft);
+    cursor:pointer;
+    text-align:center;
+  }
+  .mode-btn.active{
+    border-color:var(--teal);
+    background:var(--teal);
+    color:#fff;
+  }
+  /* ========== Champs de saisie ========== */
+
   .input-row{
     display:flex;
     align-items:center;
@@ -132,6 +165,8 @@
     background-position:right 14px center;
     background-size:20px;
   }
+  /* ========== Résultat ========== */
+
   .calc-btn{
     width:100%;
     padding:16px;
@@ -186,18 +221,6 @@
     line-height:1.4;
   }
   .alert.show{display:block;}
-  .ref-table{
-    width:100%;
-    border-collapse:collapse;
-    font-size:0.85rem;
-    margin-top:4px;
-  }
-  .ref-table td{
-    padding:8px 4px;
-    border-bottom:1px solid var(--line);
-  }
-  .ref-table td:last-child{text-align:right;font-weight:700;}
-  .ref-table tr.zero td{color:var(--ink-soft);}
 </style>
 </head>
 <body>
@@ -208,6 +231,7 @@
 
 <main>
 
+  <!-- Étape 1 : choix du repas -->
   <div class="card">
     <h2>1 — Repas</h2>
     <div class="meals" id="meals">
@@ -216,11 +240,19 @@
       <button class="meal-btn" data-meal="gouter">Goûter</button>
       <button class="meal-btn" data-meal="diner">Dîner</button>
     </div>
-    <div class="ratio-block" id="ratioBlock">
-      <select id="ratioSelect" class="select-field"></select>
-    </div>
   </div>
 
+  <!-- Ratio du repas choisi (apparaît une fois un repas sélectionné) -->
+  <div class="card ratio-card" id="ratioBlock">
+    <h2>RATIO</h2>
+    <div class="mode-tabs" id="modeTabs">
+      <button class="mode-btn active" data-mode="standard">Ratios pour 10 g de glucides</button>
+      <button class="mode-btn" data-mode="grams">Ratios pour 1 unité d'insuline</button>
+    </div>
+    <select id="ratioSelect" class="select-field"></select>
+  </div>
+
+  <!-- Étape 2 : quantité de glucides -->
   <div class="card">
     <h2>2 — Glucides du repas</h2>
     <div class="input-row">
@@ -229,6 +261,7 @@
     </div>
   </div>
 
+  <!-- Étape 3 : facteur de correction -->
   <div class="card">
     <h2>3 — Facteur de correction</h2>
     <select id="sensibilite" class="select-field">
@@ -247,6 +280,7 @@
     </select>
   </div>
 
+  <!-- Étape 4 : glycémie actuelle -->
   <div class="card">
     <h2>4 — Glycémie actuelle</h2>
     <div class="input-row">
@@ -257,6 +291,7 @@
 
   <button class="calc-btn" id="calcBtn">Calculer la dose</button>
 
+  <!-- Résultat du calcul -->
   <div class="card result" id="resultCard">
     <div class="dose-total">
       <div class="num" id="doseTotal">0</div>
@@ -274,22 +309,15 @@
     </div>
   </div>
 
-  <div class="card">
-    <h2>Table de correctif utilisée</h2>
-    <table class="ref-table">
-      <tr class="zero"><td>70 – 150 mg/dL</td><td>pas de correctif</td></tr>
-      <tr><td>150 – 200 mg/dL</td><td>+1,5 u</td></tr>
-      <tr><td>200 – 250 mg/dL</td><td>+3 u</td></tr>
-      <tr><td>250 – 300 mg/dL</td><td>+4,5 u</td></tr>
-      <tr><td>300 – 350 mg/dL</td><td>+6 u</td></tr>
-      <tr><td>350 – 400 mg/dL</td><td>+7,5 u</td></tr>
-    </table>
-  </div>
-
 </main>
 
 <script>
-  // --- Ratios par défaut par repas (valeurs du fichier Excel) ---
+
+  /* ==========================================================
+     RATIOS — valeurs par défaut et table de conversion
+     ========================================================== */
+
+  // Ratios par défaut par repas (valeurs du fichier Excel)
   const defaultRatios = {
     petit_dej: 2.0,
     dejeuner: 1.0,
@@ -297,18 +325,52 @@
     diner: 1.0
   };
 
+  // Table exacte du fichier de conversion : [ratio pour 10g, grammes pour 1 unité]
+  const ratioPairs = [
+    [0.5,20],[0.6,17],[0.7,14],[0.8,12.5],[0.9,11],[1.0,10],
+    [1.1,9],[1.2,8.5],[1.3,7.7],[1.4,7.2],[1.5,6.7],[1.6,6.2],
+    [1.7,5.9],[1.8,5.5],[1.9,5.3],[2.0,5],[2.1,4.8],[2.2,4.5],
+    [2.3,4.3],[2.4,4.2],[2.5,4],[2.6,3.8],[2.7,3.7],[2.8,3.6],
+    [2.9,3.5],[3.0,3.3],[3.1,3.2],[3.2,3.1],[3.3,3],[3.4,2.9],
+    [3.5,2.9],[3.6,2.8],[3.7,2.7],[3.8,2.6],[3.9,2.6],[4.0,2.5]
+  ];
+
+
+  /* ==========================================================
+     SÉLECTION DU REPAS ET DU RATIO
+     ========================================================== */
+
   const meals = document.querySelectorAll('.meal-btn');
   const ratioSelect = document.getElementById('ratioSelect');
   const ratioBlock = document.getElementById('ratioBlock');
-  let selectedRatio = null;
 
-  // Génère les options du ratio : 0.5 à 4.0, pas de 0.1
-  for (let i = 5; i <= 40; i++) {
-    const val = (i / 10).toFixed(1);
-    const opt = document.createElement('option');
-    opt.value = val;
-    opt.textContent = val.replace('.', ',');
-    ratioSelect.appendChild(opt);
+  let selectedRatio = null;
+  let currentMode = 'standard';
+
+  function fmt(n){
+    return n.toString().replace('.', ',');
+  }
+
+  function renderRatioOptions(){
+    ratioSelect.innerHTML = '';
+
+    if(currentMode === 'standard'){
+      ratioPairs.forEach(([c]) => {
+        const opt = document.createElement('option');
+        opt.value = c.toFixed(1);
+        opt.textContent = fmt(c);
+        ratioSelect.appendChild(opt);
+      });
+    } else {
+      // Mode "grammes / unité" : trié par grammes croissants
+      const sorted = [...ratioPairs].sort((a, b) => a[1] - b[1]);
+      sorted.forEach(([c, d]) => {
+        const opt = document.createElement('option');
+        opt.value = c.toFixed(1);
+        opt.textContent = fmt(d);
+        ratioSelect.appendChild(opt);
+      });
+    }
   }
 
   function setRatio(value){
@@ -316,19 +378,50 @@
     ratioSelect.value = selectedRatio.toFixed(1);
   }
 
-  function ratioKey(meal){ return 'ratio_' + meal; }
+  function ratioKey(meal){
+    return 'ratio_' + meal;
+  }
 
+  // Bascule entre les deux modes d'affichage du ratio (10g de glucides / 1 unité d'insuline)
+  document.getElementById('modeTabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('.mode-btn');
+    if(!btn) return;
+
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+
+    const currentRatio = selectedRatio;
+    renderRatioOptions();
+    if(currentRatio !== null){
+      ratioSelect.value = currentRatio.toFixed(1);
+    }
+  });
+
+  renderRatioOptions();
+
+  // Sélection d'un repas : affiche le bloc ratio et recharge la dernière valeur mémorisée.
+  // Recliquer sur un repas déjà actif le désélectionne et masque le bloc ratio.
   meals.forEach(btn => {
     btn.addEventListener('click', () => {
+      if(btn.classList.contains('active')){
+        btn.classList.remove('active');
+        ratioBlock.classList.remove('show');
+        selectedRatio = null;
+        return;
+      }
+
       meals.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       ratioBlock.classList.add('show');
+
       const meal = btn.dataset.meal;
       const saved = localStorage.getItem(ratioKey(meal));
       setRatio(saved !== null ? saved : defaultRatios[meal]);
     });
   });
 
+  // Changement manuel du ratio : mémorisé pour le repas actuellement sélectionné
   ratioSelect.addEventListener('change', (e) => {
     selectedRatio = parseFloat(e.target.value);
     const activeMeal = document.querySelector('.meal-btn.active');
@@ -337,8 +430,13 @@
     }
   });
 
-  // --- Tables de correctif par sensibilité (valeurs exactes du fichier Excel) ---
-  // ordre des paliers : [150-200, 200-250, 250-300, 300-350, 350-400]
+
+  /* ==========================================================
+     FACTEUR DE CORRECTION — table de correctif par glycémie
+     ========================================================== */
+
+  // Valeurs exactes du fichier Excel, par facteur de correction.
+  // Ordre des paliers : [150-200, 200-250, 250-300, 300-350, 350-400]
   const correctifTables = {
     20:  [2.5, 5,   7.5, 9,   11.5],
     25:  [2,   4,   6,   8,   10],
@@ -356,26 +454,19 @@
 
   function correctif(glyc, sensibilite){
     const table = correctifTables[sensibilite];
-    if(glyc < 70) return {value:null, zone:'hypo'};
-    if(glyc < 150) return {value:0, zone:'ok'};
-    if(glyc < 200) return {value:table[0], zone:'ok'};
-    if(glyc < 250) return {value:table[1], zone:'ok'};
-    if(glyc < 300) return {value:table[2], zone:'ok'};
-    if(glyc < 350) return {value:table[3], zone:'ok'};
-    if(glyc < 400) return {value:table[4], zone:'ok'};
-    return {value:null, zone:'high'};
-  }
 
-  function renderRefTable(sensibilite){
-    const table = correctifTables[sensibilite];
-    const rows = document.querySelectorAll('.ref-table tr:not(.zero)');
-    rows.forEach((row, i) => {
-      row.querySelector('td:last-child').textContent = '+' + table[i].toString().replace('.',',') + ' u';
-    });
+    if(glyc < 70)  return {value: null, zone: 'hypo'};
+    if(glyc < 150) return {value: 0,        zone: 'ok'};
+    if(glyc < 200) return {value: table[0], zone: 'ok'};
+    if(glyc < 250) return {value: table[1], zone: 'ok'};
+    if(glyc < 300) return {value: table[2], zone: 'ok'};
+    if(glyc < 350) return {value: table[3], zone: 'ok'};
+    if(glyc < 400) return {value: table[4], zone: 'ok'};
+
+    return {value: null, zone: 'high'};
   }
 
   document.getElementById('sensibilite').addEventListener('change', (e) => {
-    renderRefTable(e.target.value);
     localStorage.setItem('facteur_correction', e.target.value);
   });
 
@@ -383,11 +474,20 @@
   if(savedSensibilite !== null){
     document.getElementById('sensibilite').value = savedSensibilite;
   }
-  renderRefTable(document.getElementById('sensibilite').value);
 
-  if ('serviceWorker' in navigator) {
+
+  /* ==========================================================
+     SERVICE WORKER — fonctionnement hors-ligne
+     ========================================================== */
+
+  if('serviceWorker' in navigator){
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
+
+
+  /* ==========================================================
+     CALCUL DE LA DOSE
+     ========================================================== */
 
   document.getElementById('calcBtn').addEventListener('click', () => {
     const glucides = parseFloat(document.getElementById('glucides').value) || 0;
@@ -400,7 +500,7 @@
     alertHigh.classList.remove('show');
 
     if(selectedRatio === null){
-      document.querySelector('.meals').scrollIntoView({behavior:'smooth'});
+      document.querySelector('.meals').scrollIntoView({behavior: 'smooth'});
       return;
     }
 
@@ -425,6 +525,7 @@
       document.getElementById('doseCorrectif').textContent = '—';
       return;
     }
+
     if(corr.zone === 'high'){
       alertHigh.classList.add('show');
       document.getElementById('doseTotal').textContent = '—';
@@ -434,10 +535,11 @@
     }
 
     const total = doseRepas + corr.value;
-    document.getElementById('doseTotal').textContent = total.toString().replace('.',',');
-    document.getElementById('doseRepas').textContent = doseRepas.toString().replace('.',',') + ' u';
-    document.getElementById('doseCorrectif').textContent = (corr.value>0?'+':'') + corr.value.toString().replace('.',',') + ' u';
+    document.getElementById('doseTotal').textContent = total.toString().replace('.', ',');
+    document.getElementById('doseRepas').textContent = doseRepas.toString().replace('.', ',') + ' u';
+    document.getElementById('doseCorrectif').textContent = (corr.value > 0 ? '+' : '') + corr.value.toString().replace('.', ',') + ' u';
   });
+
 </script>
 
 </body>
